@@ -12,6 +12,8 @@
 #SBATCH --mail-type=ALL
 #SBATCH --chdir=./
 
+set -euo pipefail
+
 mkdir -p results/logs
 
 module purge
@@ -28,39 +30,64 @@ source "$VENV/bin/activate"
 
 pip install -r requirements.txt
 
+# Config: expected Ray cluster size.
+EXPECTED_RAY_NODES=2
+
 # Determine nodes assigned by Slurm
-NODES=$(scontrol show hostnames $SLURM_JOB_NODELIST)
-HEAD_NODE=$(echo $NODES | awk '{print $1}')
-WORKER_NODE=$(echo $NODES | awk '{print $2}')
+mapfile -t NODES < <(scontrol show hostnames "$SLURM_JOB_NODELIST")
+ALLOCATED_NODES="${#NODES[@]}"
 
-# Determine head node IP
-HEAD_IP=$(srun -N1 -n1 -w $HEAD_NODE hostname -I | awk '{print $1}')
+if [ "$ALLOCATED_NODES" -lt "$EXPECTED_RAY_NODES" ]; then
+    echo "ERROR: Expected at least $EXPECTED_RAY_NODES allocated nodes, but got $ALLOCATED_NODES"
+    exit 1
+fi
 
-export RAY_ADDRESS="$HEAD_IP:6379"
+HEAD_NODE="${NODES[0]}"
+
+# Collect IPs for all allocated nodes
+declare -A NODE_IPS
+for NODE in "${NODES[@]}"; do
+    NODE_IPS["$NODE"]=$(
+        srun --quiet -N1 -n1 -w "$NODE" bash --noprofile --norc -c 'hostname -I | awk "{print \$1}"'
+    )
+done
+
+HEAD_IP="${NODE_IPS[$HEAD_NODE]}"
+export RAY_ADDRESS="${HEAD_IP}:6379"
+export EXPECTED_RAY_NODES
 
 echo "Nodes allocated:"
-echo "$NODES"
+for NODE in "${NODES[@]}"; do
+    echo "  $NODE (${NODE_IPS[$NODE]})"
+done
 echo "Ray head: $HEAD_NODE ($HEAD_IP)"
+echo "Expected Ray nodes: $EXPECTED_RAY_NODES"
 
 # Start Ray head
-srun --overlap -N1 -n1 -w $HEAD_NODE bash -c "
+srun --overlap -N1 -n1 -w "$HEAD_NODE" bash --noprofile --norc -c "
 source $VENV/bin/activate
 ray start --head --node-ip-address=$HEAD_IP --port=6379 --disable-usage-stats --block
 " &
 
 sleep 5
 
-# Start Ray worker
-srun --overlap -N1 -n1 -w $WORKER_NODE bash -c "
+# Start Ray workers on all remaining nodes
+for NODE in "${NODES[@]:1}"; do
+    NODE_IP="${NODE_IPS[$NODE]}"
+    echo "Starting Ray worker on $NODE ($NODE_IP)"
+
+    srun --overlap -N1 -n1 -w "$NODE" bash --noprofile --norc -c "
 source $VENV/bin/activate
-ray start --address=$RAY_ADDRESS --disable-usage-stats --block
+ray start --address=$RAY_ADDRESS --node-ip-address=$NODE_IP --disable-usage-stats --block
 " &
+done
 
 sleep 10
 
-# Run Python driver
-srun --overlap -N1 -n1 -w $HEAD_NODE bash -c "
+# Run Python driver on head node
+srun --overlap -N1 -n1 -w "$HEAD_NODE" bash --noprofile --norc -c "
 source $VENV/bin/activate
 export RAY_ADDRESS=$RAY_ADDRESS
+export EXPECTED_RAY_NODES=$EXPECTED_RAY_NODES
 python ray_ping.py
 "
