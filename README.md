@@ -74,7 +74,7 @@ The goal is to support models larger than the memory available on a single node.
 Submit the Ray test job with:
 
 ```bash
-sbatch ray_test.sbatch
+sbatch ray.sbatch
 ```
 
 Once the job starts, the script will:
