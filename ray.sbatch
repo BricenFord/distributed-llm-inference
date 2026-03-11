@@ -28,15 +28,19 @@ source "$VENV/bin/activate"
 
 pip install -r requirements.txt
 
-# Get nodes from Slurm
+# Determine nodes assigned by Slurm
 NODES=$(scontrol show hostnames $SLURM_JOB_NODELIST)
 HEAD_NODE=$(echo $NODES | awk '{print $1}')
 WORKER_NODE=$(echo $NODES | awk '{print $2}')
 
-# Get IP of head node
+# Determine head node IP
 HEAD_IP=$(srun -N1 -n1 -w $HEAD_NODE hostname -I | awk '{print $1}')
 
 export RAY_ADDRESS="$HEAD_IP:6379"
+
+echo "Nodes allocated:"
+echo "$NODES"
+echo "Ray head: $HEAD_NODE ($HEAD_IP)"
 
 # Start Ray head
 srun --overlap -N1 -n1 -w $HEAD_NODE bash -c "
@@ -54,7 +58,7 @@ ray start --address=$RAY_ADDRESS --disable-usage-stats --block
 
 sleep 10
 
-# Run Python test
+# Run Python driver
 srun --overlap -N1 -n1 -w $HEAD_NODE bash -c "
 source $VENV/bin/activate
 export RAY_ADDRESS=$RAY_ADDRESS
