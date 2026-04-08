@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=40G
 #SBATCH --job-name=vllm
-#SBATCH --output=results/logs/ray_%J_stdout.txt
-#SBATCH --error=results/logs/ray_%J_stderr.txt
+#SBATCH --output=results/logs/download_vllm_%J_stdout.txt
+#SBATCH --error=results/download_vllm_%J_stderr.txt
 #SBATCH --time=04:00:00
 #SBATCH --mail-user=example@example.net
 #SBATCH --mail-type=ALL
