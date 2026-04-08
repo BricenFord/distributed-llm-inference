@@ -5,3 +5,6 @@ __pycache__/
 
 # Runtime outputs
 results/
+
+# Private sbatch scripts
+*.secret.sbatch

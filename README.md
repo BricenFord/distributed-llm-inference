@@ -15,8 +15,10 @@ Ray cluster
   ↓
 vLLM inference engine
   ↓
-Distributed model execution across GPUs
+Distributed model execution across GPUs and nodes
 ```
+
+Jobs are executed inside Apptainer containers to ensure consistent environments across nodes.
 
 Each stage is brought online independently so issues can be isolated and debugged easily.
 
@@ -50,8 +52,9 @@ After Ray is working, the next step is introducing vLLM.
 This phase will focus on:
 
 - installing vLLM in the cluster environment
-- running inference on a single node
+- running inference on a single node with tensor parallelism
 - confirming that models load correctly
+- validating tensor parallelism across GPUs on a node
 - verifying GPU utilization
 
 This step confirms the inference engine works correctly before adding multi-node complexity.
@@ -67,7 +70,7 @@ Possible parallelization approaches include:
 - tensor parallelism
 - pipeline parallelism
 
-The goal is to support models larger than the memory available on a single node.
+The goal is to support models larger than the memory available on a single node. Handling dynamic GPU memory availability on shared nodes is a key challenge for multi-node inference.
 
 ## Typical workflow
 
@@ -80,10 +83,9 @@ sbatch ray.sbatch
 Once the job starts, the script will:
 
 1. load the required modules
-2. prepare a Python virtual environment
-3. start the Ray cluster
-4. wait for the nodes to register
-5. run the distributed test script
+2. start the Ray cluster
+3. wait for the nodes to register
+4. run the distributed test script
 
 Logs are written to:
 
@@ -95,9 +97,5 @@ results/logs
 
 Planned next steps include:
 
-1. installing vLLM
-2. running inference locally on a single node
-3. integrating vLLM with the Ray cluster
-4. experimenting with multi-node model parallelization
-
-For now, the focus is on getting Ray working reliably under Slurm before moving on to distributed inference.
+1. integrating vLLM with the Ray cluster
+2. experimenting with multi-node model parallelization
