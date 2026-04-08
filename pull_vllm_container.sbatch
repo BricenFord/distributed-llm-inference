@@ -10,22 +10,20 @@
 #SBATCH --time=04:00:00
 #SBATCH --mail-user=example@example.net
 #SBATCH --mail-type=ALL
-#SBATCH --chdir=
+#SBATCH --chdir=./
 
 set -euo pipefail
 
 mkdir -p results/logs
 mkdir -p models
-mkdir -p "$VLLM_DIR"
 module purge
 
 VLLM_DIR="${VLLM_DIR:-/scratch/$USER}"
-RAY_CGRAPH_get_timeout=300
+mkdir -p "$VLLM_DIR"
+export VLLM_DIR
+
 HOSTNAMES=($(scontrol show hostnames $SLURM_JOB_NODELIST))
 HEAD_NODE=${HOSTNAMES[0]}
-
-export VLLM_DIR
-export RAY_CGRAPH_get_timeout
 export SLURM_JOBID
 export HEAD_NODE
 
