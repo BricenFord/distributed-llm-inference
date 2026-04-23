@@ -5,7 +5,7 @@
 This project implements a distributed LLM inference system using:
 
 - vLLM as the inference engine (OpenAI-compatible API server)
-- Ray for cluster orchestration across nodes
+- vLLM's multiprocessing (mp) backend for multi-node pipeline parallelism coordination
 - Slurm for multi-node resource allocation on an HPC cluster
 - Apptainer for reproducible containerized execution
 
@@ -28,7 +28,7 @@ Determine available GPU memory per node:
 sbatch gpu-info-vram.sbatch
 ```
 
-Use this to decide which model you can run.
+Use this to decide which models you can run.
 
 ---
 
@@ -59,24 +59,19 @@ sbatch pull_HF_model.sbatch
   sbatch run_vllm.sbatch
   ```
 
-- **Multi-GPU (tensor parallelism):**
+- **Multi-GPU — Tensor Parallelism (TP):**
   ```bash
   sbatch tensor_parallelism.sbatch
   ```
 
----
-
-### 5. Multi-node with Ray (Integration is in progress.)
-
-For multi-node jobs:
-
-- allocate nodes with Slurm  
-- start Ray head on the primary node  
-- workers join automatically
+- **Multi-node — Pipeline Parallelism (PP) + (optional TP):**
+  ```bash
+  sbatch pipeline_parallelism.sbatch
+  ```
 
 ---
 
-### 6. Send Requests
+### 5. Send Requests
 
 vLLM exposes an OpenAI-compatible API:
 
@@ -98,7 +93,7 @@ curl http://<host>:8000/v1/completions \
 
 ---
 
-### 7. Logs
+### 6. Logs
 
 All logs:
 
@@ -110,10 +105,10 @@ results/logs
 
 ### Notes
 
-- Match model size to available VRAM  
-- Use parallelism for larger models  
-- Leave VRAM headroom for runtime allocations  
-
+- Match model size to available VRAM
+- Use tensor parallelism to spread a model across multiple GPUs on a single node
+- Use tensor + pipeline parallelism to spread a model across multiple nodes and GPUs
+- Leave VRAM headroom for runtime allocations
 
 ---
 
@@ -123,13 +118,11 @@ results/logs
 
 The system currently supports:
 
-#### 1. Multi-node Ray cluster on Slurm
+#### 1. Multi-node cluster on Slurm
 
 - Slurm allocates multiple nodes
-- A Ray head node is launched on the primary node
-- Worker nodes join automatically
-- The cluster is validated via distributed test execution
 - GPU resources are correctly detected and scheduled
+- Inter-node coordination is handled by vLLM's multiprocessing (mp) backend
 
 This provides a stable distributed execution layer.
 
@@ -142,36 +135,22 @@ This provides a stable distributed execution layer.
 - Tensor parallelism is fully operational across GPUs
 - GPU utilization is validated and stable
 
-At this stage, single-node multi-GPU inference is working reliably.
-
 ---
 
-### Current Focus
+#### 3. Multi-node pipeline parallelism
 
-The main objective now is:
-
-## Multi-node pipeline parallelism
-
-The goal is to extend inference beyond a single node by:
-
-- splitting model execution across multiple machines
-- coordinating execution using Ray
-- leveraging pipeline parallelism to distribute layers across nodes
-
-This is required to:
-
-- run models larger than a single node’s GPU memory
-- efficiently utilize distributed GPU resources
-- handle real-world HPC constraints (e.g., shared nodes, variable GPU availability)
+- Model execution is split across multiple machines
+- Pipeline parallelism distributes layers across nodes
+- Combines with tensor parallelism for full multi-node, multi-GPU inference
+- Enables running models larger than a single node's GPU memory
 
 ---
 
 ### Key Challenges
 
-- Coordinating inter-node communication for model execution  
-- Integrating Ray scheduling with vLLM’s distributed mechanisms  
-- Managing GPU memory fragmentation across nodes  
-- Ensuring stable startup and synchronization across Slurm jobs  
+- Coordinating inter-node communication for model execution
+- Managing GPU memory fragmentation across nodes
+- Ensuring stable startup and synchronization across Slurm jobs
 - Allocating and distributing model shards across GPUs that are already partially in use (handling contention and dynamic memory availability)
 
 ---
@@ -196,16 +175,16 @@ results/logs
 
 These include:
 
-- Ray cluster initialization logs  
-- distributed test outputs  
-- vLLM startup and inference logs  
+- distributed test outputs
+- vLLM startup and inference logs
 
 ---
 
 ### Summary
 
-- Ray cluster on Slurm: complete  
-- Single-node tensor parallelism (vLLM): complete  
-- Multi-node pipeline parallelism: in progress  
+- Single-node, single-GPU inference (vLLM): complete
+- Single-node, multi-GPU tensor parallelism: complete
+- Multi-node tensor + pipeline parallelism: complete
 
-The system is now focused on enabling full multi-node model execution.
+The system supports full multi-node model execution.
+
