@@ -1,12 +1,11 @@
 #!/bin/bash
-#SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=40G
 #SBATCH --job-name=vllm
 #SBATCH --output=results/logs/download_vllm_%J_stdout.txt
-#SBATCH --error=results/download_vllm_%J_stderr.txt
+#SBATCH --error=results/logs/download_vllm_%J_stderr.txt
 #SBATCH --time=04:00:00
 #SBATCH --mail-user=example@example.net
 #SBATCH --mail-type=ALL
@@ -18,6 +17,7 @@ mkdir -p results/logs
 mkdir -p models
 module purge
 
+# Configurable base directory
 VLLM_DIR="${VLLM_DIR:-/scratch/$USER}"
 mkdir -p "$VLLM_DIR"
 export VLLM_DIR

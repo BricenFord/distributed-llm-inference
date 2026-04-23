@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -24,8 +23,8 @@ mkdir -p "$VLLM_DIR"
 export VLLM_DIR
 
 # Model configuration
-MODEL_REPO="${MODEL_REPO:-https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct}"
-MODEL_NAME="${MODEL_NAME:-Qwen3-VL-8B-Instruct}"
+MODEL_REPO="${MODEL_REPO:-URL}" # Insert hugging face url
+MODEL_NAME="${MODEL_NAME:-MODEL_NAME}" # Insert model name
 MODEL_PARENT="${MODEL_PARENT:-$VLLM_DIR/models}"
 MODEL_DIR="${MODEL_DIR:-$MODEL_PARENT/$MODEL_NAME}"
 

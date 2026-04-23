@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=40G
-#SBATCH --time=23:00:00
+#SBATCH --time=2:00:00
 #SBATCH --mail-user=example@example.net
 #SBATCH --mail-type=ALL
 #SBATCH --job-name=vllm
@@ -12,13 +12,13 @@
 #SBATCH --output=results/logs/run_%J_%N_stdout.txt
 #SBATCH --error=results/logs/run_%J_%N_stderr.txt
 
-#SBATCH --nodelist=c860,c928
+#SBATCH --nodelist=
 
 set -euo pipefail
 
 BASE="/scratch/INSERTUSER"
 SIF="$BASE/vllm-openai.sif"
-MODEL_DIR="$BASE/models/Qwen3.5-122B-A10B"
+MODEL_DIR="$BASE/models/INSERTMODEL"
 
 HOST="0.0.0.0"
 PORT="8000"
